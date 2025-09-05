@@ -1,4 +1,13 @@
-# Cloudflare-workers/pages代理脚本【目前版本：25.5.4】
+# 本项目fork自甬哥侃侃侃。
+# 本项目对vless worker的一些变量名进行了修改
+uuid改成了name
+proxyip改成了pp
+
+## 使用注意事项
+在Cloudflare worker那里变量设置不要设置uuid，而是设置name，同理不要设置proxyip，而是设置pp。仍然保留了在v2rayn上路径设置proxyip的逻辑。
+
+
+# Cloudflare-workers/pages代理脚本【fork版本：25.5.4】
 ------------------------------------------------
 ------------------------------------------------
 ### 1、本项目仅支持本地化部署
