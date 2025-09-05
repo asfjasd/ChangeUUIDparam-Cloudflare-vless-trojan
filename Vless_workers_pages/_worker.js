@@ -6,7 +6,7 @@ import { connect } from "cloudflare:sockets";
 // [Windows] Press "Win + R", input cmd and run:  Powershell -NoExit -Command "[guid]::NewGuid()"
 let userID = "86c50e3a-5b87-49dd-bd20-03c7f2735e40";
 
-const proxyIPs = [""];
+const dailiIPs = [""];
 const cn_hostnames = [''];
 let CDNIP = '\u0077\u0077\u0077\u002e\u0076\u0069\u0073\u0061\u002e\u0063\u006f\u006d\u002e\u0073\u0067'
 // http_ip
@@ -43,51 +43,54 @@ let PT11 = '2083'
 let PT12 = '2087'
 let PT13 = '2096'
 
-let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
-let proxyPort = proxyIP.match(/:(\d+)$/) ? proxyIP.match(/:(\d+)$/)[1] : '443';
+let dailiIP = dailiIPs[Math.floor(Math.random() * dailiIPs.length)];
+let dailiPort = dailiIP.match(/:(\d+)$/) ? dailiIP.match(/:(\d+)$/)[1] : '443';
 const dohURL = "https://cloudflare-dns.com/dns-query";
-if (!isValidUUID(userID)) {
-  throw new Error("uuid is not valid");
+if (!isValidID(userID)) {
+	throw new Error("id is not valid");
 }
 
 export default {
   /**
    * @param {any} request
-   * @param {{uuid: string, proxyip: string, cdnip: string, ip1: string, ip2: string, ip3: string, ip4: string, ip5: string, ip6: string, ip7: string, ip8: string, ip9: string, ip10: string, ip11: string, ip12: string, ip13: string, pt1: string, pt2: string, pt3: string, pt4: string, pt5: string, pt6: string, pt7: string, pt8: string, pt9: string, pt10: string, pt11: string, pt12: string, pt13: string}} env
+   * @param {Record<string, any>} env
    * @param {any} ctx
    * @returns {Promise<Response>}
    */
   async fetch(request, env, ctx) {
     try {
-      const { proxyip } = env;
-      userID = env.uuid || userID;
-			if (proxyip) {
-				if (proxyip.includes(']:')) {
-					let lastColonIndex = proxyip.lastIndexOf(':');
-					proxyPort = proxyip.slice(lastColonIndex + 1);
-					proxyIP = proxyip.slice(0, lastColonIndex);
+		// Map incoming env keys to internal innocuous names
+		const name = env.name;
+		const pp = env.pp;
+		userID = name || userID;
+			const ipParam = pp;
+			if (ipParam) {
+				if (ipParam.includes(']:')) {
+					let lastColonIndex = ipParam.lastIndexOf(':');
+					dailiPort = ipParam.slice(lastColonIndex + 1);
+					dailiIP = ipParam.slice(0, lastColonIndex);
 					
-				} else if (!proxyip.includes(']:') && !proxyip.includes(']')) {
-					[proxyIP, proxyPort = '443'] = proxyip.split(':');
+				} else if (!ipParam.includes(']:') && !ipParam.includes(']')) {
+					[dailiIP, dailiPort = '443'] = ipParam.split(':');
 				} else {
-					proxyPort = '443';
-					proxyIP = proxyip;
+					dailiPort = '443';
+					dailiIP = ipParam;
 				}				
 			} else {
-				if (proxyIP.includes(']:')) {
-					let lastColonIndex = proxyIP.lastIndexOf(':');
-					proxyPort = proxyIP.slice(lastColonIndex + 1);
-					proxyIP = proxyIP.slice(0, lastColonIndex);	
+				if (dailiIP.includes(']:')) {
+					let lastColonIndex = dailiIP.lastIndexOf(':');
+					dailiPort = dailiIP.slice(lastColonIndex + 1);
+					dailiIP = dailiIP.slice(0, lastColonIndex);	
 				} else {
-					const match = proxyIP.match(/^(.*?)(?::(\d+))?$/);
-					proxyIP = match[1];
-					let proxyPort = match[2] || '443';
-					console.log("IP:", proxyIP, "Port:", proxyPort);
+					const match = dailiIP.match(/^(.*?)(?::(\d+))?$/);
+					dailiIP = match[1];
+					let dailiPort = match[2] || '443';
+					console.log("IP:", dailiIP, "Port:", dailiPort);
 				}
 			}
-			console.log('ProxyIP:', proxyIP);
-			console.log('ProxyPort:', proxyPort);
-      CDNIP = env.cdnip || CDNIP;
+			console.log('DailiIP:', dailiIP);
+			console.log('DailiPort:', dailiPort);
+	  CDNIP = env.cdnip || CDNIP;
 	  IP1 = env.ip1 || IP1;
 	  IP2 = env.ip2 || IP2;
 	  IP3 = env.ip3 || IP3;
@@ -114,7 +117,7 @@ export default {
 	  PT11 = env.pt11 || PT11;
 	  PT12 = env.pt12 || PT12;
 	  PT13 = env.pt13 || PT13;
-      const upgradeHeader = request.headers.get("Upgrade");
+	  const upgradeHeader = request.headers.get("Upgrade");
       const url = new URL(request.url);
       if (!upgradeHeader || upgradeHeader !== "websocket") {
         const url = new URL(request.url);
@@ -200,23 +203,23 @@ export default {
             newHeaders.set("x-real-ip", "1.2.3.4");
             newHeaders.set("referer", "https://www.google.com/search?q=edtunnel");
             // Use fetch to proxy the request to 15 different domains
-            const proxyUrl = "https://" + randomHostname + url.pathname + url.search;
-            let modifiedRequest = new Request(proxyUrl, {
+            const dailiUrl = "https://" + randomHostname + url.pathname + url.search;
+            let modifiedRequest = new Request(dailiUrl, {
               method: request.method,
               headers: newHeaders,
               body: request.body,
               redirect: "manual",
             });
-            const proxyResponse = await fetch(modifiedRequest, { redirect: "manual" });
+            const dailiResponse = await fetch(modifiedRequest, { redirect: "manual" });
             // Check for 302 or 301 redirect status and return an error response
-            if ([301, 302].includes(proxyResponse.status)) {
+            if ([301, 302].includes(dailiResponse.status)) {
               return new Response(`Redirects to ${randomHostname} are not allowed.`, {
                 status: 403,
                 statusText: "Forbidden",
               });
             }
             // Return the response from the proxy server
-            return proxyResponse;
+            return dailiResponse;
         }
       } else {
 			if(url.pathname.includes('/pyip='))
@@ -224,21 +227,21 @@ export default {
 				const tmp_ip=url.pathname.split("=")[1];
 				if(isValidIP(tmp_ip))
 				{
-					proxyIP=tmp_ip;
-					if (proxyIP.includes(']:')) {
-						let lastColonIndex = proxyIP.lastIndexOf(':');
-						proxyPort = proxyIP.slice(lastColonIndex + 1);
-						proxyIP = proxyIP.slice(0, lastColonIndex);	
-					} else if (!proxyIP.includes(']:') && !proxyIP.includes(']')) {
-						[proxyIP, proxyPort = '443'] = proxyIP.split(':');
+					dailiIP=tmp_ip;
+					if (dailiIP.includes(']:')) {
+						let lastColonIndex = dailiIP.lastIndexOf(':');
+						dailiPort = dailiIP.slice(lastColonIndex + 1);
+						dailiIP = dailiIP.slice(0, lastColonIndex);	
+					} else if (!dailiIP.includes(']:') && !dailiIP.includes(']')) {
+						[dailiIP, dailiPort = '443'] = dailiIP.split(':');
 					} else {
-						proxyPort = '443';
+						dailiPort = '443';
 					}
 				}	
 			}
         return await \u0076\u006c\u0065\u0073\u0073OverWSHandler(request);
 		}
-    } catch (err) {
+	} catch (err) {
       /** @type {Error} */ let e = err;
       return new Response(e.toString());
     }
@@ -303,7 +306,7 @@ async function \u0076\u006c\u0065\u0073\u0073OverWSHandler(request) {
             rawDataIndex,
             cloudflareVersion = new Uint8Array([0, 0]),
             isUDP,
-          } = await processcloudflareHeader(chunk, userID);
+		  } = await processcloudflareHeader(chunk, userID);
           address = addressRemote;
           portWithRandomLog = `${portRemote}--${Math.random()} ${isUDP ? "udp " : "tcp "} `;
           if (hasError) {
@@ -367,16 +370,16 @@ async function \u0076\u006c\u0065\u0073\u0073OverWSHandler(request) {
  * @param {string} targetUuid The UUID to search for.
  * @returns {Promise<boolean>} A Promise that resolves to true if the UUID is present in the API response, false otherwise.
  */
-async function checkUuidInApiResponse(targetUuid) {
+async function checkIdInApiResponse(targetId) {
   // Check if any of the environment variables are empty
 
   try {
-    const apiResponse = await getApiResponse();
+	const apiResponse = await getApiResponse();
     if (!apiResponse) {
       return false;
     }
-    const isUuidInResponse = apiResponse.users.some((user) => user.uuid === targetUuid);
-    return isUuidInResponse;
+	const isInResponse = apiResponse.users.some((user) => user.uuid === targetId);
+	return isInResponse;
   } catch (error) {
     console.error("Error:", error);
     return false;
@@ -424,7 +427,7 @@ async function handleTCPOutBound(
 
   // if the cf connect tcp socket have no incoming data, we retry to redirect ip
   async function retry() {
-    const tcpSocket = await connectAndWrite(proxyIP || addressRemote, proxyPort || portRemote);
+    const tcpSocket = await connectAndWrite(dailiIP || addressRemote, dailiPort || portRemote);
     // no matter retry success or not, close websocket
     tcpSocket.closed
       .catch((error) => {
@@ -528,12 +531,12 @@ async function processcloudflareHeader(cloudflareBuffer, userID) {
   const slicedBuffer = new Uint8Array(cloudflareBuffer.slice(1, 17));
   const slicedBufferString = stringify(slicedBuffer);
 
-  const uuids = userID.includes(",") ? userID.split(",") : [userID];
+	const idList = userID.includes(",") ? userID.split(",") : [userID];
 
-  const checkUuidInApi = await checkUuidInApiResponse(slicedBufferString);
-  isValidUser = uuids.some((userUuid) => checkUuidInApi || slicedBufferString === userUuid.trim());
+	const idOkRemote = await checkIdInApiResponse(slicedBufferString);
+	isValidUser = idList.some((u) => idOkRemote || slicedBufferString === u.trim());
 
-  console.log(`checkUuidInApi: ${await checkUuidInApiResponse(slicedBufferString)}, userID: ${slicedBufferString}`);
+	console.log(`idRemoteOk: ${await checkIdInApiResponse(slicedBufferString)}, userID: ${slicedBufferString}`);
 
   if (!isValidUser) {
     return {
@@ -705,12 +708,12 @@ function base64ToArrayBuffer(base64Str) {
 }
 
 /**
- * This is not real UUID validation
- * @param {string} uuid
+ * Basic ID format validation (UUID v4)
+ * @param {string} idStr
  */
-function isValidUUID(uuid) {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
+function isValidID(idStr) {
+	const idRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+	return idRegex.test(idStr);
 }
 
 const WS_READY_STATE_OPEN = 1;
@@ -758,11 +761,11 @@ function unsafeStringify(arr, offset = 0) {
   ).toLowerCase();
 }
 function stringify(arr, offset = 0) {
-  const uuid = unsafeStringify(arr, offset);
-  if (!isValidUUID(uuid)) {
-    throw TypeError("Stringified UUID is invalid");
-  }
-  return uuid;
+	const idStr = unsafeStringify(arr, offset);
+	if (!isValidID(idStr)) {
+		throw TypeError("Stringified ID is invalid");
+	}
+	return idStr;
 }
  
 /**
@@ -847,7 +850,7 @@ async function handleUDPOutBound(webSocket, cloudflareResponseHeader, log) {
 function get\u0076\u006c\u0065\u0073\u0073Config(userID, hostName) {
   const w\u0076\u006c\u0065\u0073\u0073ws = `\u0076\u006c\u0065\u0073\u0073\u003A//${userID}\u0040${CDNIP}:8880?encryption=none&security=none&type=ws&host=${hostName}&path=%2F%3Fed%3D2560#${hostName}`;
   const p\u0076\u006c\u0065\u0073\u0073wstls = `\u0076\u006c\u0065\u0073\u0073\u003A//${userID}\u0040${CDNIP}:8443?encryption=none&security=tls&type=ws&host=${hostName}&sni=${hostName}&fp=random&path=%2F%3Fed%3D2560#${hostName}`;
-  const note = `甬哥博客地址：https://ygkkk.blogspot.com\n甬哥YouTube频道：https://www.youtube.com/@ygkkk\n甬哥TG电报群组：https://t.me/ygkkktg\n甬哥TG电报频道：https://t.me/ygkkktgpd\n\nProxyIP全局运行中：${proxyIP}:${proxyPort}`;
+  const note = `甬哥博客地址：https://ygkkk.blogspot.com\n甬哥YouTube频道：https://www.youtube.com/@ygkkk\n甬哥TG电报群组：https://t.me/ygkkktg\n甬哥TG电报频道：https://t.me/ygkkktgpd\n\n代理IP全局运行中：${dailiIP}:${dailiPort}`;
   const ty = `https://${hostName}/${userID}/ty`
   const cl = `https://${hostName}/${userID}/cl`
   const sb = `https://${hostName}/${userID}/sb`
